@@ -22,7 +22,7 @@ class ZINB(BaseEstimator, TransformerMixin):
         ro.r["library"]("biomaRt")
         ro.r["library"]("tibble")
         ro.r["library"]("SIMLR")
-        ro.r("BiocParallel::register(BiocParallel::MulticoreParam())")
+        ro.r("BiocParallel::register(BiocParallel::MulticoreParam(4))")
         ro.r.assign("K", n_components)
         ro.r['source']('~/R/zinboptimizeval.R')
         
