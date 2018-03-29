@@ -1,6 +1,12 @@
 # scVI-reproducibility
 Reproducing the experiments of the scVI paper
 
+Demonstration code is available at https://github.com/YosefLab/scVI
+NIPS MLCB submission is available at https://arxiv.org/abs/1709.02082
+
+# Contact
+romain [underscore] lopez [at] berkeley [dot] edu
+
 ## Datasets
 + CORTEX
 
@@ -9,7 +15,7 @@ Original file expression_mRNA_17-Aug-2014.txt can be dowloaded here https://stor
 + PBMC
 
 An additional R script to extract the quantity of interest from SCONE objects is needed (additional/PBMC.R)
-scVI_scone.rda, scone_all_wposcon_extendim_biostrat2_q.rda, molecule_qc_8k.txt, molecule_qc_4k.txt and gene_info.csv (containing the merged p-values from the microarray experiments) can be downloaded here XXXXX
+scVI_scone.rda, scone_all_wposcon_extendim_biostrat2_q.rda, molecule_qc_8k.txt, molecule_qc_4k.txt and gene_info.csv (containing the merged p-values from the microarray experiments) are in additional/data.zip
 
 + BRAIN LARGE
 
@@ -21,11 +27,11 @@ An additional Jupyter Notebook to format the data for scVI is needed (additional
 An additional R script, based on the original analysis is needed (additional/RETINA.R)
 We modified the file class.R so that the gene filtering also apply to the raw matrix, use ours in this repo (additional/class.R)
 The file bipolar_data_Cell2016.Rdata can be downloaded here https://github.com/broadinstitute/BipolarCell2016
-The file ClustAssignFile.txt was obtained from the author and can be downloaded here XXXXX
+The file ClustAssignFile.txt was obtained from the author, uploaded in additional/data.zip
 
 + HEMATO
 
-Original files bBM.raw_umifm_counts.csv can be downloaded here https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM2388072 bBM.spring_and_pba.csv and bBM.filtered_gene_list.paper.txt were sent by authors and can be downloaded here XXXX
+Original files bBM.raw_umifm_counts.csv can be downloaded here https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM2388072 bBM.spring_and_pba.csv and bBM.filtered_gene_list.paper.txt were sent by authors, uploaded in additional/data.zip
 
 + CBMC
 
