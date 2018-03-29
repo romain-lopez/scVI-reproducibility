@@ -55,8 +55,8 @@ def dropout(X, rate=0.1):
     X_zero[i[ix], j[ix]] *= np.random.binomial(1, rate)
        
     # choice number 2, focus on a few but corrupt binomially
-    ix = np.random.choice(range(len(i)), int(slice_prop * np.floor(len(i))), replace=False)
-    X_zero[i[ix], j[ix]] = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
+    #ix = np.random.choice(range(len(i)), int(slice_prop * np.floor(len(i))), replace=False)
+    #X_zero[i[ix], j[ix]] = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
     return X_zero, i, j, ix
 
 
