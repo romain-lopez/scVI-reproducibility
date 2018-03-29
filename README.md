@@ -1,4 +1,4 @@
-# scVI-reproducability
+# scVI-reproducibility
 Reproducing the experiments of the scVI paper
 
 ## Datasets
