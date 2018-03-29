@@ -2,6 +2,7 @@
 Reproducing the experiments of the scVI paper
 
 Demonstration code is available at https://github.com/YosefLab/scVI
+
 NIPS MLCB submission is available at https://arxiv.org/abs/1709.02082
 
 # Contact
