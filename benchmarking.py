@@ -38,7 +38,7 @@ def cluster_scores(latent_space, K, labels_true):
 
 
 
-def dropout(X, rate=0.1, slice_prop=0.1):
+def dropout(X, rate=0.1):
     """
     X: original testing set
     ========
@@ -50,12 +50,11 @@ def dropout(X, rate=0.1, slice_prop=0.1):
     # select non-zero subset
     i,j = np.nonzero(X_zero)
     
-    # stategy number one, keep all the dataset and add some zeros
-    #ix = np.arange(len(i))
-    #binomial_subsampling = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
-    #X_zero[i[ix], j[ix]] *= binomial_subsampling > 0
-    
-    # Stategy number two, focus on a few but corrupt binomially
+    # choice number 1 : select 10 percent of the non zero values (so that distributions overlap enough)
+    ix = np.random.choice(range(len(i)), int(np.floor(0.1 * len(i))), replace=False)
+    X_zero[i[ix], j[ix]] *= np.random.binomial(1, rate)
+       
+    # choice number 2, focus on a few but corrupt binomially
     ix = np.random.choice(range(len(i)), int(slice_prop * np.floor(len(i))), replace=False)
     X_zero[i[ix], j[ix]] = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
     return X_zero, i, j, ix
