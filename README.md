@@ -1,9 +1,9 @@
 # scVI-reproducibility
 Reproducing the experiments of the scVI paper
 
-Demonstration code is available at https://github.com/YosefLab/scVI
-
-NIPS MLCB submission is available at https://arxiv.org/abs/1709.02082
++ Demonstration code: https://github.com/YosefLab/scVI
++ NIPS MLCB submission: https://arxiv.org/abs/1709.02082
++ biorXiv preprint: https://www.biorxiv.org/content/early/2018/03/30/292037
 
 # Contact
 romain [underscore] lopez [at] berkeley [dot] edu
