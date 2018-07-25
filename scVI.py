@@ -514,3 +514,223 @@ class scVIModel:
                              - tf.nn.softplus( - self.px_dropout)
             self.dropout_prob = - tf.nn.softplus( - self.px_dropout)
 
+            
+class scVINoLibSizeModel:
+
+    def __init__(self, expression=None, batch_ind=None, num_batches=None, kl_scale=None, mmd_scale=None, phase=None, apply_mmd=False, \
+                 dispersion="gene", n_layers=1, n_hidden=128, n_latent=10, \
+                 dropout_rate=0.1, log_variational=True, optimize_algo=None, zi=True):
+        """
+        scVI algorithm with no library size
+        """
+        
+        # Gene expression placeholder
+        if expression is None:
+            raise ValueError("provide a tensor for expression data")
+        self.expression = expression
+        
+        print("Running scVI on "+ str(self.expression.get_shape().as_list()[1]) + " genes")
+        self.log_variational = log_variational
+
+        # batch correction
+        if batch_ind is None:
+            print("scVI will run without batch correction")
+            self.batch = None
+            self.apply_mmd = False
+            
+        else:
+            if num_batches is None:
+                raise ValueError("provide a comprehensive list of unique batch ids")
+            self.batch_ind = batch_ind
+            self.num_batches = num_batches
+            self.batch = tf.one_hot(batch_ind, num_batches)
+            self.mmd_scale = mmd_scale
+            self.apply_mmd = apply_mmd
+
+            print("Got " + str(num_batches) + "batches in the data")
+            if self.apply_mmd:
+                print("Will apply a MMD penalty")
+            else: 
+                print("Will not apply a MMD penalty")
+        
+        #kl divergence scalar
+        if kl_scale is None:
+            raise ValueError("provide a tensor for kl scalar")
+        self.kl_scale = kl_scale
+        
+        # high level model parameters
+        if dispersion not in ["gene", "gene-batch", "gene-cell"]:
+            raise ValueError("dispersion should be in gene / gene-batch / gene-cell")
+        self.dispersion = dispersion
+        
+        print("Will work on mode " + self.dispersion + " for modeling inverse dispersion param")
+        
+        self.zi = zi
+        if zi:
+            print("Will apply zero inflation")
+        
+        # neural nets architecture
+        self.n_hidden = n_hidden
+        self.n_latent = n_latent
+        self.n_layers = n_layers
+        self.n_input = self.expression.get_shape().as_list()[1] 
+
+        print(str(self.n_layers) + " hidden layers at " + str(self.n_hidden) + " each for a final " + str(self.n_latent) + " latent space")
+        
+        # on training variables
+        self.dropout_rate = dropout_rate
+        if phase is None:
+            raise ValueError("provide an optimization metadata (phase)")
+        self.training_phase = phase
+        if optimize_algo is None:
+            raise ValueError("provide an optimization method")
+        self.optimize_algo = optimize_algo
+        
+        # call functions
+        self.variational_distribution
+        self.sampling_latent
+        self.generative_model
+        self.optimize
+        self.optimize_test
+        self.imputation
+
+    @define_scope
+    def variational_distribution(self):
+        """
+        defines the variational distribution or inference network of the model
+        q(z | x, s)
+
+
+        """
+
+        #q(z | x, s)
+        if self.log_variational:
+            x = tf.log(1 + self.expression)
+        else:
+            x = self.expression
+
+        h = dense(x, self.n_hidden, activation=tf.nn.relu, \
+                    bn=True, keep_prob=self.dropout_rate, phase=self.training_phase)
+        for layer in range(2, self.n_layers + 1):
+            h = dense(h, self.n_hidden, activation=tf.nn.relu, \
+                bn=True, keep_prob=self.dropout_rate, phase=self.training_phase)
+
+        
+        self.qz_m = dense(h, self.n_latent, activation=None, \
+                bn=False, keep_prob=None, phase=self.training_phase)
+        self.qz_v = dense(h, self.n_latent, activation=tf.exp, \
+                bn=False, keep_prob=None, phase=self.training_phase)
+       
+    
+    @define_scope
+    def sampling_latent(self):
+        """
+        defines the sampling process on the latent space given the var distribution
+        """
+            
+        self.z = gaussian_sample(self.qz_m, self.qz_v)
+    
+    @define_scope
+    def generative_model(self):
+        """
+        defines the generative process given a latent variable (the conditional distribution)
+        """
+            
+        # p(x | z, s)
+        if self.batch is not None:
+            h = tf.concat([self.z, self.batch], 1)
+        else:
+            h = self.z
+        
+        #h = dense(h, self.n_hidden,
+        #          activation=tf.nn.relu, bn=True, keep_prob=self.dropout_rate, phase=self.training_phase)
+        h = dense(h, self.n_hidden,
+                  activation=tf.nn.relu, bn=True, keep_prob=None, phase=self.training_phase)
+                
+        for layer in range(2, self.n_layers + 1):
+            if self.batch is not None:
+                h = tf.concat([h, self.batch], 1)
+            h = dense(h, self.n_hidden, activation=tf.nn.relu, \
+                bn=True, keep_prob=self.dropout_rate, phase=self.training_phase)
+
+        if self.batch is not None:
+            h = tf.concat([h, self.batch], 1)        
+        
+        self.px_rate = dense(h, self.n_input, activation=tf.exp, \
+                    bn=False, keep_prob=None, phase=self.training_phase)
+        
+        #dispersion
+        if self.dispersion == "gene-cell":
+            self.px_r = dense(h, self.n_input, activation=None, \
+                    bn=False, keep_prob=None, phase=self.training_phase)
+        elif self.dispersion == "gene":
+            self.px_r = tf.Variable(tf.random_normal([self.n_input]), name="r")
+        else:
+            if self.batch_ind is None:
+                raise ValueError("batch dispersion with no batch info")
+            else:
+                self.px_r = tf.Variable(tf.random_normal([self.num_batches, self.n_input]), name="r")
+
+        #dropout
+        if self.zi:
+            self.px_dropout = dense(h, self.n_input, activation=None, \
+                    bn=False, keep_prob=None, phase=self.training_phase)
+        
+
+    @define_scope
+    def optimize(self):
+        """
+        write down the loss and the optimizer
+        """
+        
+        # converting from batch to local quantities
+        if self.dispersion == "gene-batch":
+            local_dispersion = tf.matmul(self.batch, tf.exp(self.px_r))
+        else: 
+            local_dispersion = tf.exp(self.px_r)
+        
+        
+        # VAE loss
+        if self.zi:
+            recon = log_zinb_positive(self.expression, self.px_rate, local_dispersion, \
+                                  self.px_dropout)
+        else:
+            recon = log_nb_positive(self.expression, self.px_rate, local_dispersion)
+        
+        kl_gauss_z = 0.5 * tf.reduce_sum(\
+                        tf.square(self.qz_m) + self.qz_v - tf.log(1e-8 + self.qz_v) - 1, 1)
+
+        
+        self.ELBO_gau = tf.reduce_mean(recon - self.kl_scale * kl_gauss_z)
+        
+        # MMD loss
+        if self.apply_mmd:
+            self.mmd = mmd_objective(self.z, self.batch_ind, self.num_batches)
+            self.loss = - self.ELBO_gau + self.mmd_scale *  self.mmd
+        
+        else:
+            self.loss = - self.ELBO_gau
+        
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        optimizer = self.optimize_algo
+        with tf.control_dependencies(update_ops):
+            self.train_step = optimizer.minimize(self.loss)
+    
+    @define_scope
+    def optimize_test(self):
+        # Test time optimizer to compare log-likelihood score of ZINB-WaVE
+        update_ops_test = tf.get_collection(tf.GraphKeys.UPDATE_OPS, "variational")
+        test_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "variational")
+        optimizer_test = tf.train.AdamOptimizer(learning_rate=0.001, epsilon=0.1)
+        with tf.control_dependencies(update_ops_test):
+            self.test_step = optimizer_test.minimize(self.loss, var_list=test_vars)
+    
+    @define_scope
+    def imputation(self):
+        # more information of zero probabilities
+        if self.zi:
+            self.zero_prob = tf.nn.softplus(- self.px_dropout + tf.exp(self.px_r) * self.px_r - tf.exp(self.px_r) \
+                             * tf.log(tf.exp(self.px_r) + self.px_rate + 1e-8)) \
+                             - tf.nn.softplus( - self.px_dropout)
+            self.dropout_prob = - tf.nn.softplus( - self.px_dropout)
+
