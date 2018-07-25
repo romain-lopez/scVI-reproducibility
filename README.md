@@ -1,7 +1,7 @@
 # scVI-reproducibility
 Reproducing the experiments of the scVI paper
-
-+ Demonstration code: https://github.com/YosefLab/scVI
++ Current development version in PyTorch is available at https://github.com/YosefLab/scVI 
++ TensorFlow Demonstration code has been moved from YosefLab/scVI to the demo_code folder in this repo
 + NIPS MLCB submission: https://arxiv.org/abs/1709.02082
 + biorXiv preprint: https://www.biorxiv.org/content/early/2018/03/30/292037
 
