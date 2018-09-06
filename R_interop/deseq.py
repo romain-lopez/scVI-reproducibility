@@ -32,6 +32,7 @@ class DESeq2(object):
                 
         # loading data
         ro.r(str("""fmat <- npyLoad("*""")[:-1] + self.data + str("""*", "integer")""")[1:])
+        #ro.r(str("""fmat <- npyLoad("*""")[:-1] + self.data + str("""*", "numeric")""")[1:])
         ro.r(str("""cmat <- read.table("*""")[:-1] + self.labels + str("""*")""")[1:])
         ro.r("cmat$V2 <- factor(cmat$V1)")
         
