@@ -82,6 +82,99 @@ def train_model(model, expression, sess, num_epochs, step=None, batch=None, kl=N
     return training_history
 
 
+def train_model_patience(model, expression, sess, num_epochs, step=None, batch=None, kl=None):
+    """
+    This model implements customized training that stops after no progress within XXX iterations. 
+    This is commonly called EarlyStopping in the litterature.
+    """
+    
+    expression_train, expression_test = expression
+    
+    scVI_batch = batch is not None
+    if scVI_batch:
+        batch_train, batch_test = batch
+    
+    if step is None:
+        step = model.train_step
+        
+    batch_size = 128
+    iterep = int(expression_train.shape[0]/float(batch_size))-1
+    
+    training_history = {"t_loss":[], "v_loss":[], "time":[], "epoch":[]}
+    training_history["n_hidden"] = model.n_hidden
+    training_history["model"] = model.__class__.__name__
+    training_history["n_input"] = model.n_input
+    training_history["dropout_nn"] = model.dropout_rate
+    training_history["dispersion"] = model.dispersion
+    training_history["n_layers"] = model.n_layers
+    if kl is None:
+        warmup = lambda x: np.minimum(1, x / 400.)
+    else:
+        warmup = lambda x: kl
+    
+    begin = time.time()    
+    
+    
+    # early stopping schedule
+    best_performance = np.inf
+    wait = 0
+    
+    
+    for t in range(iterep * num_epochs):
+        
+        # warmup
+        end_epoch, epoch = t % iterep == 0, t / iterep
+        kl = warmup(epoch)
+    
+        # arange data in batches
+        index_train = np.random.choice(np.arange(expression_train.shape[0]), size=batch_size)
+        x_train = expression_train[index_train].astype(np.float32)
+
+        #prepare data dictionaries
+        dic_train = {model.expression: x_train, model.training_phase:True, model.kl_scale:kl}
+        dic_test = {model.expression: expression_test,  model.training_phase:False, model.kl_scale:kl}
+        
+        if scVI_batch:
+            b_train = batch_train[index_train]
+            dic_train[model.batch_ind] = b_train
+            dic_train[model.mmd_scale] = 10
+            dic_test[model.batch_ind] = batch_test
+            dic_test[model.mmd_scale] = 10
+
+        
+        # run an optimization set
+        _, l_tr = sess.run([model.train_step, model.loss], feed_dict=dic_train)
+
+        if end_epoch:          
+            
+            now = time.time()
+
+            l_t = sess.run((model.loss), feed_dict=dic_test)
+            
+            if wait >= 20:
+                break
+            else: 
+                if l_t < best_performance:
+                    # there is an improvement
+                    best_performance = l_t
+
+                if l_t > best_performance:
+                    wait += 1
+                else:
+                    wait = 0
+                
+            training_history["t_loss"].append(l_tr)
+            training_history["v_loss"].append(l_t)
+            training_history["time"].append(format_time(int(now-begin)))
+            training_history["epoch"].append(epoch)
+            
+            if np.isnan(l_tr):
+                break
+    #print "scVI ran for " + str(epoch) + "epochs" 
+    #print "val loss", str(l_t)
+    return training_history
+
+
 def eval_params(model, data, sess, batch=None):
     dic_full = {model.expression: data, model.training_phase:False, model.kl_scale:1}
     if batch is not None:
