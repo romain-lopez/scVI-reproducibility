@@ -4,6 +4,7 @@ Helper functions for training scVI
 
 import time 
 import numpy as np
+import tensorflow as tf
 from benchmarking import * 
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -86,6 +87,8 @@ def train_model_patience(model, expression, sess, num_epochs, step=None, batch=N
     """
     This model implements customized training that stops after no progress within XXX iterations. 
     This is commonly called EarlyStopping in the litterature.
+    
+    Here, we return the value of the \rho but keep training as in the scVI manuscript to show stability of these values
     """
     
     expression_train, expression_test = expression
@@ -117,8 +120,10 @@ def train_model_patience(model, expression, sess, num_epochs, step=None, batch=N
     
     # early stopping schedule
     best_performance = np.inf
+    flag_has_exported_rho = False
     wait = 0
-    
+    rho_early = None
+    rho_final = None
     
     for t in range(iterep * num_epochs):
         
@@ -146,13 +151,16 @@ def train_model_patience(model, expression, sess, num_epochs, step=None, batch=N
         _, l_tr = sess.run([model.train_step, model.loss], feed_dict=dic_train)
 
         if end_epoch:          
-            
             now = time.time()
 
             l_t = sess.run((model.loss), feed_dict=dic_test)
             
-            if wait >= 20:
-                break
+            if wait >= 12:
+                if not flag_has_exported_rho:
+                    print "scVI ran for " + str(epoch) + "epochs"
+                    print "SAVING RHO"
+                    rho_early, _, _ = eval_scale_params(model, expression_test, sess)
+                    flag_has_exported_rho = True
             else: 
                 if l_t < best_performance:
                     # there is an improvement
@@ -168,11 +176,15 @@ def train_model_patience(model, expression, sess, num_epochs, step=None, batch=N
             training_history["time"].append(format_time(int(now-begin)))
             training_history["epoch"].append(epoch)
             
+            print "epoch:", epoch, "  l_t:", l_t, "  wait:", wait
+
+            
             if np.isnan(l_tr):
                 break
-    #print "scVI ran for " + str(epoch) + "epochs" 
-    #print "val loss", str(l_t)
-    return training_history
+                
+    print "SAVING RHO"
+    rho_final, _, _ = eval_scale_params(model, expression_test, sess)
+    return training_history, rho_early, rho_final
 
 
 def eval_params(model, data, sess, batch=None):
@@ -184,6 +196,14 @@ def eval_params(model, data, sess, batch=None):
     dispersion = np.tile(sess.run((tf.exp(model.px_r))), (rate.shape[0], 1))
     return rate, dispersion, dropout
 
+def eval_scale_params(model, data, sess, batch=None):
+    dic_full = {model.expression: data, model.training_phase:False, model.kl_scale:1}
+    if batch is not None:
+        dic_full[model.batch_ind] = batch
+        dic_full[model.mmd_scale] = 0 
+    scale, dropout = sess.run((model.px_scale, model.px_dropout), feed_dict=dic_full)
+    dispersion = np.tile(sess.run((tf.exp(model.px_r))), (scale.shape[0], 1))
+    return scale, dispersion, dropout
 
 def eval_imputed_data(model, corrupted_info, expression_train, sess, batch=None): 
     
