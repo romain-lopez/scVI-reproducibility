@@ -19,7 +19,7 @@ log_library_size = np.log(np.sum(expression_train, axis=1))
 mean, var = np.mean(log_library_size), np.var(log_library_size)
 
 batch_size = 128
-learning_rate = 0.001
+learning_rate = 0.0005
 epsilon = 0.01
 
 print "building graph"
