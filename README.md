@@ -1,7 +1,9 @@
 # scVI-reproducibility
-Reproducing the experiments of the scVI paper
++ Demonstration code of the old Tensorflow code (the demo_code in this repository loads the CORTEX dataset)
++ Reproducing the experiments of the scVI paper 
+
+# Following up with scVI research
 + Current development version in PyTorch is available at https://github.com/YosefLab/scVI 
-+ TensorFlow Demonstration code has been moved from YosefLab/scVI to the demo_code folder in this repo
 + NIPS MLCB submission: https://arxiv.org/abs/1709.02082
 + biorXiv preprint: https://www.biorxiv.org/content/early/2018/03/30/292037
 
@@ -42,4 +44,22 @@ Original files GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv, GSE100866_CBMC_8K_13AB_10
 
 Original files genes.tsv, barcodes.tsv, matrix.mtx and clusters.csv can be downloaded here https://support.10xgenomics.com/single-cell-gene-expression/datasets/2.1.0/neuron_9k
 molecule_qc.txt was extracted from the original file http://cf.10xgenomics.com/samples/cell-exp/2.1.0/neuron_9k/neuron_9k_molecule_info.h5 using the additional python script additional/molecule_info.py (credit David Detomaso)
+
+## System requirements
++ Python 2.7.12 (version tested) or compatible
++ Tensorflow 1.3.0 (version tested) or compatible
+
+## Installation guide
++ Clone the github repository, install the dependencies and call functions from the modules scVI
++ Install time (< 10 min)
+
+## Demo 
++ simply follow the given notebook
++ output should match the paper
++ run time should be less than 10 min on any hardware (including CPU, CORTEX is a small dataset)
+
+## Instructions
++ Follow the analysis notebooks
+
+
 
