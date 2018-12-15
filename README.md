@@ -1,11 +1,7 @@
 # scVI-reproducibility
 + Demonstration code of the old Tensorflow code (the demo_code in this repository loads the CORTEX dataset)
-+ Reproducing the experiments of the scVI paper 
-
-# Following up with scVI research
-+ Current development version in PyTorch is available at https://github.com/YosefLab/scVI 
-+ NIPS MLCB submission: https://arxiv.org/abs/1709.02082
-+ biorXiv preprint: https://www.biorxiv.org/content/early/2018/03/30/292037
++ Reproducing the experiments of the paper "Deep generative modeling for single-cell transcriptomics" https://www.nature.com/articles/s41592-018-0229-2
++ Current version in PyTorch is available at https://github.com/YosefLab/scVI 
 
 # Contact
 romain [underscore] lopez [at] berkeley [dot] edu
